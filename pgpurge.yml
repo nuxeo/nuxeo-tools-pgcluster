@@ -1,0 +1,16 @@
+---
+- hosts: cluster
+  gather_facts: no
+  sudo: yes
+  tasks:
+  - name: Remove first run file
+    file: path=/var/lib/postgresql/nuxeo_db_init_done state=absent
+  - name: Remove old wal files
+    file: path=/var/lib/postgresql/replication/{{pgversion}}/main/wals state=absent
+  - name: Remove trigger file
+    file: path=/tmp/pgsql.trigger state=absent
+  - name: Purge PostgreSQL
+    apt: pkg={{item}} state=absent purge=yes
+    with_items:
+    - postgresql-{{pgversion}}
+    - postgresql-contrib-{{pgversion}}

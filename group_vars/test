@@ -1,0 +1,17 @@
+---
+pgversion: 9.3
+dbname: nuxeo
+dbuser: nuxeo
+dbpass: nuxeo
+replicator_pass: supersecretpass
+max_prepared_transactions: 64
+work_mem: 24MB
+maintenance_work_mem: 128MB
+wal_buffers: 16MB
+max_connections: 100
+shared_buffers: 1GB
+effective_cache_size: 2GB
+bucket: my-pg-replication-bucket
+aws_id: my_aws_access_key_id
+aws_secret: my_aws_secret_access_key
+

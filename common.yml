@@ -1,0 +1,92 @@
+---
+- meta: flush_handlers
+- name: Update package cache
+  apt: update_cache=yes
+- name: Install pycurl
+  apt: pkg=python-pycurl state=present
+- name: Add PostgreSQL repository key
+  apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
+- name: Add PostgreSQL repository
+  apt_repository: repo="deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" state=present update_cache=yes
+- name: Install packages
+  apt: pkg={{item}} state=present
+  with_items:
+  - build-essential
+  - python-dev
+  - libevent-dev
+  - postgresql-{{pgversion}}
+  - postgresql-contrib-{{pgversion}}
+  - python-psycopg2
+  - python-pip
+  - daemontools
+  - lzop
+  - pv
+- name: Install wal-e
+  pip: name=wal-e state=present
+  with_items:
+  - gevent
+  - boto
+  - wal-e
+- name: Create wal-e env directory
+  file: path=/etc/wal-e.d/env state=directory owner=postgres mode=0700
+- name: Create env file for id
+  template: src=templates/AWS_ACCESS_KEY_ID dest=/etc/wal-e.d/env/AWS_ACCESS_KEY_ID owner=postgres mode=0600
+- name: Create env file for secret
+  template: src=templates/AWS_SECRET_ACCESS_KEY dest=/etc/wal-e.d/env/AWS_SECRET_ACCESS_KEY owner=postgres mode=0600
+- name: Create env file for bucket
+  template: src=templates/WALE_S3_PREFIX dest=/etc/wal-e.d/env/WALE_S3_PREFIX owner=postgres mode=0600
+- name: PostgreSQL listen address
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?listen_addresses\s*='
+    line="listen_addresses = '*'"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL max_connections
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?max_connections\s*='
+    line="max_connections = {{max_connections}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL max prepared transactions
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?max_prepared_transactions\s*='
+    line="max_prepared_transactions = {{max_prepared_transactions}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL shared buffers
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?shared_buffers\s*='
+    line="shared_buffers = {{shared_buffers}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL effective cache size
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?effective_cache_size\s*='
+    line="effective_cache_size = {{effective_cache_size}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL work mem
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?work_mem\s*='
+    line="work_mem = {{work_mem}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL maintenance work mem
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?maintenance_work_mem\s*='
+    line="maintenance_work_mem = {{maintenance_work_mem}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL WAL buffers
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?wal_buffers\s*='
+    line="wal_buffers = {{wal_buffers}}"
+    state=present
+  notify: Restart PostgreSQL
+- name: Enable db access
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/pg_hba.conf
+    regexp='^host\s*all\s*all\s*0\.0\.0\.0/0\s*md5'
+    line="host all all 0.0.0.0/0 md5"
+    state=present
+  notify: Restart PostgreSQL
+

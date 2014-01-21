@@ -1,0 +1,23 @@
+---
+- name: Enable replication access
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/pg_hba.conf
+    regexp='^host\s*replication\s*replicator\s*{{item}}/32\s*md5'
+    line="host replication replicator {{item}}/32 md5"
+    state=present
+  with_items: groups['master']
+  notify: Restart PostgreSQL
+- name: PostgreSQL wal_level
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?wal_level\s*='
+    line="wal_level = hot_standby"
+    state=present
+  notify: Restart PostgreSQL
+- name: Enable hot standby
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?hot_standby\s*='
+    line="hot_standby = on"
+    state=present
+  notify: Restart PostgreSQL
+- name: Create directory for WALs
+  file: path=/var/lib/postgresql/replication/{{pgversion}}/main/wals owner=postgres mode=0700 state=directory
+

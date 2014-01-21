@@ -1,0 +1,9 @@
+---
+- name: Restart PostgreSQL
+  service: name=postgresql state=restarted
+- name: Prepare db scripts
+  copy: src=files/dbsetup.sql dest=/tmp/dbsetup.sql owner=postgres mode=0600
+  notify: Execute db scripts
+- name: Execute db scripts
+  command: psql template1 -f /tmp/dbsetup.sql
+  sudo_user: postgres

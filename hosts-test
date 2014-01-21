@@ -1,0 +1,13 @@
+[test:children]
+cluster
+
+[cluster:children]
+master
+replica
+
+[master]
+192.168.1.100
+
+[replica]
+192.168.1.101
+

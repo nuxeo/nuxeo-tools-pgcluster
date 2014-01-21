@@ -1,0 +1,32 @@
+---
+- hosts: cluster
+  gather_facts: no
+  sudo: yes
+  tasks:
+  - include: common.yml
+  handlers:
+  - include: handlers.yml
+
+- hosts: master
+  gather_facts: no
+  sudo: yes
+  tasks:
+  - include: master.yml
+  handlers:
+  - include: handlers.yml
+
+- hosts: replica
+  gather_facts: no
+  sudo: yes
+  tasks:
+  - include: replica.yml
+  handlers:
+  - include: handlers.yml
+
+- hosts: cluster
+  gather_facts: no
+  sudo: yes
+  tasks:
+  - include: initdb.yml
+  handlers:
+  - include: handlers.yml

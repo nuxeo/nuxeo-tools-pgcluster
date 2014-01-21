@@ -1,0 +1,36 @@
+---
+- name: Create database on master
+  postgresql_db: name={{dbname}} encoding='UTF-8' owner={{dbuser}} state=present template="template1"
+  sudo_user: postgres
+  register: dbcreate
+  when: "'master' in group_names"
+- name: Prepare db scripts
+  copy: src=files/dbsetup.sql dest=/tmp/dbsetup.sql owner=postgres mode=0600
+  when: "'master' in group_names and dbcreate.changed"
+- name: Execute db scripts
+  command: psql {{dbname}} -f /tmp/dbsetup.sql
+  sudo_user: postgres
+  when: "'master' in group_names and dbcreate.changed"
+- name: Register first run
+  command: touch /var/lib/postgresql/nuxeo_db_init_done
+    creates=/var/lib/postgresql/nuxeo_db_init_done
+  register: first_run
+  when: "'replica' in group_names"
+- name: Stop PostgreSQL on replica
+  service: name=postgresql state=stopped
+  when: "'replica' in group_names and first_run.changed"
+- name: Make base backup
+  command: envdir /etc/wal-e.d/env /usr/local/bin/wal-e backup-push /var/lib/postgresql/{{pgversion}}/main
+  sudo_user: postgres
+  when: "'master' in group_names and dbcreate.changed"
+- name: Restore backup on replica
+  command: envdir /etc/wal-e.d/env /usr/local/bin/wal-e backup-fetch /var/lib/postgresql/{{pgversion}}/main LATEST
+  sudo_user: postgres
+  when: "'replica' in group_names and first_run.changed"
+- name: Setup recovery.conf
+  template: src=templates/recovery.conf dest=/var/lib/postgresql/{{pgversion}}/main/recovery.conf owner=postgres mode=0600
+  with_items: groups['master']
+  when: "'replica' in group_names and first_run.changed"
+- name: Start PostgreSQL on replica
+  service: name=postgresql state=started
+  when: "'replica' in group_names and first_run.changed"

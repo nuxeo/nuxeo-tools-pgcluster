@@ -1,0 +1,53 @@
+---
+- name: Create replicator user
+  postgresql_user: user=replicator password={{replicator_pass}} role_attr_flags=REPLICATION state=present
+  sudo_user: postgres
+- name: Create db user
+  postgresql_user: name={{dbuser}} password={{dbpass}} state=present
+  sudo_user: postgres
+- name: Enable replication access
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/pg_hba.conf
+    regexp='^host\s*replication\s*replicator\s*{{item}}/32\s*md5'
+    line="host replication replicator {{item}}/32 md5"
+    state=present
+  with_items: groups['replica']
+  notify: Restart PostgreSQL
+- name: Create directory for WALs
+  file: path=/var/lib/postgresql/replication/{{pgversion}}/main/wals owner=postgres mode=0700 state=directory
+- name: PostgreSQL wal_level
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?wal_level\s*='
+    line="wal_level = hot_standby"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL wal_keep_segments
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?wal_keep_segments\s*='
+    line="wal_keep_segments = 128"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL max_wal_senders
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?max_wal_senders\s*='
+    line="max_wal_senders = 5"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL archive_mode
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?archive_mode\s*='
+    line="archive_mode = on"
+    state=present
+  notify: Restart PostgreSQL
+- name: PostgreSQL archive_command
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?archive_command\s*='
+    line="archive_command = 'envdir /etc/wal-e.d/env /usr/local/bin/wal-e wal-push %p'"
+    state=present
+  with_items: groups['replica']
+  notify: Restart PostgreSQL
+- name: PostgreSQL archive timeout
+  lineinfile: dest=/etc/postgresql/{{pgversion}}/main/postgresql.conf
+    regexp='^#?archive_timeout\s*='
+    line="archive_timeout = 60"
+    state=present
+  notify: Restart PostgreSQL

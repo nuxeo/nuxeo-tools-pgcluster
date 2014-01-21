@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export ANSIBLE_MODULE_LANG="en_US.UTF-8"
+ansible-playbook -i $1 pgcluster.yml -c ssh -v
